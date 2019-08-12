@@ -57,6 +57,9 @@ steps:
   volumes:
   - name: 'vol1'
     path: '/code_persist'
+  env:
+  - 'CLOUDSDK_COMPUTE_ZONE=${_ZONE}'
+  - 'CLOUDSDK_CONTAINER_CLUSTER=${_PROJECT_NAME}-$BRANCH_NAME-$SHORT_SHA'
 - name: 'gcr.io/cloud-builders/gcloud'
   entrypoint: /bin/sh
   id: Test Cluster
