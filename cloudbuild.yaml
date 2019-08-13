@@ -1,4 +1,6 @@
 steps:
+
+# This step installs GO dependencies
 - name: 'gcr.io/cloud-builders/go'
   id: Install Go
   args: ['install', '.']
@@ -6,14 +8,20 @@ steps:
   volumes:
   - name: 'vol1'
     path: '/code_persist'
+
+# This step compiles the app
 - name: 'gcr.io/cloud-builders/go'
   id: Build
   args: ['build', '${_PROJECT_NAME}']
   env: ['PROJECT_ROOT=${_PROJECT_NAME}']
+
+# This step tests the app
 - name: 'gcr.io/cloud-builders/go'
   id: Test
   args: ['test']
   env: ['PROJECT_ROOT=${_PROJECT_NAME}']
+
+# This step creates the docker image
 - name: 'gcr.io/cloud-builders/docker'
   id: Container Build 
   args:
@@ -21,6 +29,8 @@ steps:
   - '-t'
   - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}:$SHORT_SHA'
   - '.'
+
+# This step pushes the docker image to the registry
 - name: 'gcr.io/cloud-builders/docker'
   id: Push
   args:
@@ -28,6 +38,8 @@ steps:
   - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}:$SHORT_SHA'
   env:
   - 'PROJECT_ID=$PROJECT_ID'
+
+#This step creates a QA environment
 - name: 'gcr.io/cloud-builders/gcloud'
   id: GKE Create QA
   entrypoint: 'bash'
@@ -36,6 +48,8 @@ steps:
   - | 
     gcloud container clusters create ${_PROJECT_NAME}-$BRANCH_NAME-$SHORT_SHA --zone=${_ZONE} --enable-network-policy --subnetwork=default || echo 'cluster already created'
 #    [[ "$BRANCH_NAME" != "master" ]] && gcloud container clusters create ${_PROJECT_NAME}-$BRANCH_NAME-$SHORT_SHA --zone=${_ZONE} --enable-network-policy --subnetwork=default || echo 'cluster already created'
+
+# This step transforms the new manifest
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Transform manifest
   entrypoint: /bin/sh
@@ -47,6 +61,8 @@ steps:
   volumes:
   - name: 'vol1'
     path: '/code_persist'
+
+# This publishes the application via the manifests
 - name: 'gcr.io/cloud-builders/kubectl'
   id: Create Deployment
   args:
@@ -60,6 +76,8 @@ steps:
   env:
   - 'CLOUDSDK_COMPUTE_ZONE=${_ZONE}'
   - 'CLOUDSDK_CONTAINER_CLUSTER=${_PROJECT_NAME}-$BRANCH_NAME-$SHORT_SHA'
+
+# This step queries the load balancer for an IP and tests the app (to be replaced with integration tests)
 - name: 'gcr.io/cloud-builders/gcloud'
   entrypoint: /bin/sh
   id: Test Cluster
@@ -69,6 +87,8 @@ steps:
      sleep 120 && test $(curl -s -I $(kubectl get services ${_PROJECT_NAME} --no-headers=true | awk '{print $4}') | grep HTTP/1.1 | awk {'print $2'}) -eq "200" && echo "All Tests Passed" || raise error "Application not active"
   waitFor:
   - 'Create Deployment'
+
+# This step, if TEARDOWN == true, destroys the QA cluster when testing is completed.
 - name: 'gcr.io/cloud-builders/gcloud'
   id: GKE Destroy QA
   entrypoint: 'bash'
