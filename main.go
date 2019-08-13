@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-const version string = "1.0"
+const version string = "1.01"
 
 func getFrontpage(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Congratulations! Version %s of your application is running on GKE.", version)
