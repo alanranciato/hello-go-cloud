@@ -79,4 +79,4 @@ steps:
   waitFor:
   - 'Test Cluster'
 images: 
-  - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}:$SHORT_SHA' 
